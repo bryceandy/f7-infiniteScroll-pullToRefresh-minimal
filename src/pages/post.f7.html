@@ -1,0 +1,45 @@
+<template>
+  <div class="page" data-name="post">
+    <div class="navbar">
+      <div class="navbar-bg"></div>
+      <div class="navbar-inner sliding">
+        <div class="left">
+          <a href="#" class="link back">
+            <i class="icon icon-back"></i>
+            <span class="if-not-md">Back</span>
+          </a>
+        </div>
+        <div class="title">{{post.title}}</div>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="block block-strong">
+        {{post.body}}
+      </div>
+      <div class="block-title text-color-yellow">comments</div>
+      {{#each comments}}
+        <div class="card">
+          <div class="card-content card-content-padding">
+            <p class="text-color-gray"><i>{{email}}</i></p>
+            <div>{{body}}</div>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+  </div>
+</template>
+<script>
+  export default {
+    async data() {
+      let comments = [];
+
+      await this.$f7.request.promise({
+        url: `https://jsonplaceholder.typicode.com/posts/${this.post.id}/comments`,
+        dataType: 'json'
+      })
+      .then((response) => (comments = response.data));
+
+      return { comments }
+    }
+  };
+</script>

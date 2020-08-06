@@ -1,0 +1,112 @@
+<template>
+  <div class="page" data-name="posts">
+    <div class="navbar">
+      <div class="navbar-bg"></div>
+      <div class="navbar-inner sliding">
+        <div class="title">Posts</div>
+      </div>
+    </div>
+    <div class="page-content infinite-scroll-content ptr-content">
+      <div class="ptr-preloader">
+        <div class="preloader"></div>
+        <div class="ptr-arrow"></div>
+      </div>
+      <div class="list links-list">
+        <ul>
+          {{#each posts}}
+            <li><a href="#" @click="openPost('{{id}}')">{{title}}</a></li>
+          {{/each}}
+        </ul>
+      </div>
+      {{#js_if 'this.showInfinitePreloader && this.posts.length > 19'}}
+        <div class="preloader infinite-scroll-preloader"></div>
+      {{/js_if}}
+    </div>
+  </div>
+</template>
+<script>
+  export default {
+    async data() {
+      let posts = [];
+
+      await this.fetchData().then((response) => (posts = response.data));
+
+      return {
+        posts,
+        allowInfinite: true,
+        showInfinitePreloader: true,
+        timesTabShowed: 0,
+      }
+    },
+
+    on: {
+      infinite() {
+        if (!this.allowInfinite) return;
+
+        this.$setState({ allowInfinite: false });
+
+        this.fetchData(this.posts.length, 20)
+        .then((response) => {
+          response.data.length < 20 ?
+            this.killInfiniteScroll() :
+            this.$setState({ allowInfinite: true });
+
+          this.$setState({
+            posts: this.posts.concat(response.data)
+          })
+        })
+      },
+      pageTabShow() {
+        this.$setState({ timesTabShowed: this.timesTabShowed + 1 });
+
+        if (this.timesTabShowed > 1) this.$f7.ptr.refresh('.ptr-content')
+      },
+      ptrRefresh() {
+        this.loadFreshData()
+      }
+    },
+
+    methods: {
+      fetchData(start = 0, limit = 20) {
+        return this.$f7.request.promise({
+          url: `https://jsonplaceholder.typicode.com/posts?_start=${start}&_limit=${limit}`,
+          method: 'GET',
+          dataType: 'json',
+        })
+      },
+      killInfiniteScroll() {
+        this.$f7.infiniteScroll.destroy('.infinite-scroll-content');
+        this.$setState({ showInfinitePreloader: false })
+      },
+      openPost(id) {
+        return this.$router.navigate('/post/', {
+          context: {
+            post: this.posts.filter((post) => parseInt(id) === post.id)[0],
+          }
+        });
+      },
+      loadFreshData() {
+        const ptr = this.$f7.ptr.get('.ptr-content');
+
+        this.fetchData()
+          .then((response) => {
+            ptr.done();
+
+            this.$f7.infiniteScroll.create('.infinite-scroll-content');
+
+            this.$setState({
+              posts: response.data,
+              allowInfinite: true,
+              showInfinitePreloader: true,
+            })
+          })
+          .catch((error) => this.$f7.toast.create({
+              text: error.message,
+              closeButton: true,
+              closeButtonColor: 'red'
+            }).open()
+          )
+      },
+    },
+  };
+</script>
